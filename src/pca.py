@@ -1,7 +1,7 @@
 from typing import List, Tuple
 from matplotlib.figure import Figure
 import matplotlib.pyplot as plt
-from .matrix import Matrix
+from matrix import Matrix
 import math
 import random
 
@@ -12,22 +12,26 @@ def gauss_solver(A: Matrix, b: Matrix) -> List[Matrix]:
     augmented = [A.data[i] + b.data[i] for i in range(n)]
     
     for i in range(n):
-        pivot = max(range(i, n), key=lambda x: abs(augmented[x][i]))
+        # Выбор ведущего элемента
+        pivot = max(range(i, n), key=lambda r: abs(augmented[r][i]))
         augmented[i], augmented[pivot] = augmented[pivot], augmented[i]
         
         if abs(augmented[i][i]) < 1e-10:
             raise ValueError("Система несовместна")
             
+        # Нормировка строки
         divisor = augmented[i][i]
-        augmented[i] = [x / divisor for x in augmented[i]]
+        augmented[i] = [elem / divisor for elem in augmented[i]]
         
+        # Исключение переменной
         for j in range(n):
             if j != i and abs(augmented[j][i]) > 1e-10:
                 factor = augmented[j][i]
-                augmented[j] = [x - factor * augmented[i][k] for k in range(len(augmented[j]))] # type: ignore
+                augmented[j] = [augmented[j][k] - factor * augmented[i][k] 
+                              for k in range(len(augmented[j]))]
     
     solution = [row[-1] for row in augmented]
-    return [Matrix([[x] for x in solution])]
+    return [Matrix([[val] for val in solution])]
 
 def center_data(X: Matrix) -> Matrix:
     """Центрирование данных"""
@@ -46,6 +50,10 @@ def find_eigenvalues(C: Matrix, tol: float = 1e-6) -> List[float]:
         return (C - Matrix.identity(C.rows) * lam).determinant()
     
     eigenvalues = []
+    # Для диагональной матрицы собственные значения - диагональные элементы
+    if all(abs(C.data[i][j]) < tol for i in range(C.rows) for j in range(C.cols) if i != j):
+        return sorted([C.data[i][i] for i in range(C.rows)], reverse=True)
+    
     for _ in range(C.rows):
         a, b = -1e6, 1e6
         while b - a > tol:
@@ -54,7 +62,8 @@ def find_eigenvalues(C: Matrix, tol: float = 1e-6) -> List[float]:
                 b = c
             else:
                 a = c
-        eigenvalues.append(round((a + b)/2, int(math.log10(1/tol))))
+        eigenvalue = round((a + b)/2, int(math.log10(1/tol)))
+        eigenvalues.append(eigenvalue)
     return sorted(eigenvalues, reverse=True)
 
 def find_eigenvectors(C: Matrix, eigenvalues: List[float]) -> List[Matrix]:
@@ -87,8 +96,13 @@ def pca(X: Matrix, k: int) -> Tuple[Matrix, float]:
     eigenvalues = [pair[0] for pair in sorted_pairs]
     eigenvectors = [pair[1] for pair in sorted_pairs]
     
-    # Проекция данных
-    Vk = Matrix([vec.data for vec in eigenvectors[:k]]).transpose()
+    eigenvectors_flat = []
+    for vec in eigenvectors:
+        flat_vec = [elem[0] for elem in vec.data]
+        eigenvectors_flat.append(flat_vec)
+    
+    Vk = Matrix(eigenvectors_flat[:k]).transpose()
+    
     X_proj = X_centered * Vk
     gamma = explained_variance_ratio(eigenvalues, k)
     

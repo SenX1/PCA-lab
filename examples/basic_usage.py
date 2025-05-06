@@ -3,9 +3,9 @@ import os
 import math
 import matplotlib.pyplot as plt
 
-sys.path.append(r'C:/Users/arseni/all/git/repa/linalg_pca/PCA-lab/src')
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'src')))
 
-from src.matrix import Matrix
+from matrix import Matrix
 from pca import (
     center_data,
     covariance_matrix,
